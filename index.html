@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>chunhatpham</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+    <link rel="apple-touch-icon" href="https://i.postimg.cc/6qnLYH1T/4759A0B8-E067-4933-A1B0-72F8BA84466B.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="chunhatpham">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* --- CÀI ĐẶT MÀU SẮC VÀ NỀN --- */
+        :root { --bg-color: #000000; --primary-red: #ff3333; --glass-bg: rgba(20, 20, 20, 0.6); --glass-border: rgba(255, 51, 51, 0.2); --text-muted: #888888; --text-light: #ffffff; --success-green: #00ff88; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-color); color: var(--text-light); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+        #toast { position: fixed; top: -100px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; padding: 15px 20px; background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 20px; color: var(--text-light); font-size: 13px; font-weight: 500; text-align: center; line-height: 1.5; box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 2000; transition: top 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+        #toast.show { top: 70px; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 1500; opacity: 0; transition: opacity 0.3s ease; }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal-content { background: rgba(20, 20, 20, 0.85); border: 1px solid var(--glass-border); border-radius: 20px; width: 85%; max-width: 350px; padding: 25px 20px; transform: translateY(50px); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 40px rgba(255, 51, 51, 0.2); }
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+        .modal-header { text-align: center; margin-bottom: 20px; }
+        .modal-header h3 { font-size: 18px; color: var(--primary-red); }
+        .modal-header p { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
+        .game-option { background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; margin-bottom: 12px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.2s; }
+        .game-option:active { transform: scale(0.95); background: rgba(255, 51, 51, 0.2); border-color: var(--primary-red); }
+        .game-option i { font-size: 24px; color: #fff; background: var(--primary-red); padding: 10px; border-radius: 8px; }
+        .game-option span { font-size: 16px; font-weight: bold; }
+
+        /* --- TOP BAR --- */
+        .top-bar { position: fixed; top: 0; width: 100%; height: 60px; display: flex; align-items: center; padding: 0 20px; background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid var(--glass-border); z-index: 100; padding-top: env(safe-area-inset-top); }
+        .top-bar .icon { font-size: 24px; color: var(--text-light); cursor: pointer; transition: color 0.3s; }
+        .logo-container { display: flex; align-items: center; justify-content: center; flex: 1; }
+        .logo-container img { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--primary-red); margin-right: 10px; }
+        .top-bar .logo-text { font-size: 20px; font-weight: 700; color: var(--primary-red); letter-spacing: 1px; text-shadow: 0 0 10px rgba(255, 51, 51, 0.4); }
+
+        /* Nút Cài đặt (Mây tải xuống) có hiệu ứng nhấp nháy */
+        #install-btn { display: none; color: var(--success-green); text-shadow: 0 0 10px rgba(0,255,136,0.6); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+        .content-area { flex: 1; margin-top: 60px; margin-bottom: 70px; overflow-y: auto; padding: 20px; }
+        .tab-content { display: none; flex-direction: column; animation: fadeIn 0.3s ease forwards; }
+        .tab-content.active { display: flex; }
+
+        .connection-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; }
+        .timer-box { font-size: 24px; font-weight: 700; color: var(--text-muted); font-family: 'Courier New', Courier, monospace; margin-bottom: 10px; transition: color 0.3s; }
+        .timer-box.active { color: var(--success-green); text-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
+        .switch { position: relative; display: inline-block; width: 100px; height: 50px; margin-bottom: 10px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #222; transition: .4s; border-radius: 50px; border: 2px solid #333; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); }
+        .slider:before { position: absolute; content: ""; height: 40px; width: 40px; left: 3px; bottom: 3px; background-color: #fff; transition: .4s cubic-bezier(0.68, -0.2, 0.265, 1.3); border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+        input:checked + .slider { background-color: var(--primary-red); border-color: var(--primary-red); box-shadow: 0 0 20px rgba(255, 51, 51, 0.6); }
+        input:checked + .slider:before { transform: translateX(50px); }
+        .switch.loading { pointer-events: none; opacity: 0.7; }
+        .status-text { font-size: 14px; font-weight: 600; color: var(--text-muted); }
+        .status-text.connected { color: var(--primary-red); }
+
+        .action-menu { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+        .action-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 14px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .action-card .left { display: flex; align-items: center; gap: 12px; }
+        .action-card .left i { font-size: 18px; color: var(--primary-red); width: 24px; text-align: center; }
+
+        .section-title { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; margin-top: 10px; }
+        .terminal-box { background: rgba(5, 5, 5, 0.9); border: 1px solid rgba(255, 51, 51, 0.3); border-radius: 12px; height: 140px; padding: 12px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 11px; color: #aaa; margin-bottom: 15px; box-shadow: inset 0 0 15px rgba(0,0,0,0.9); }
+        .terminal-box .log-line { margin-bottom: 4px; line-height: 1.4; }
+        .terminal-box .log-line.highlight { color: var(--primary-red); font-weight: bold; }
+        .terminal-box .log-line.success { color: var(--success-green); }
+
+        .game-card { background: linear-gradient(135deg, rgba(30,30,30,0.8), rgba(15,15,15,0.8)); border: 1px dashed rgba(255, 51, 51, 0.5); border-radius: 12px; padding: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; cursor: pointer; transition: background 0.3s; }
+        .game-card:active { background: rgba(255,51,51,0.2); }
+        .game-card .left { display: flex; align-items: center; gap: 15px; }
+        .game-card .game-icon { width: 40px; height: 40px; background: var(--primary-red); border-radius: 10px; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; box-shadow: 0 0 10px rgba(255,51,51,0.5); }
+        .game-card .game-info h4 { font-size: 15px; margin-bottom: 3px; color: #fff; }
+        .game-card .game-info p { font-size: 12px; color: var(--text-muted); }
+        .game-card .right-arrow { color: var(--primary-red); font-size: 18px; }
+
+        .mini-stats-box { background: rgba(0, 0, 0, 0.8); border: 1px solid var(--glass-border); border-radius: 10px; padding: 12px; font-family: 'Courier New', Courier, monospace; font-size: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; color: #ddd; margin-bottom: 20px; }
+        .stat-item span { font-weight: bold; color: var(--primary-red); }
+
+        .antiban-container { background: linear-gradient(90deg, rgba(15,15,15,0.9), rgba(5,5,5,0.9)); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; }
+        .antiban-left { display: flex; align-items: center; gap: 15px; width: 85%; }
+        .antiban-icon { font-size: 24px; color: var(--primary-red); text-shadow: 0 0 15px rgba(255,51,51,0.6); }
+        .marquee-box { overflow: hidden; white-space: nowrap; width: 100%; position: relative; display: flex; align-items: center; }
+        .marquee-text { display: inline-block; font-size: 12px; font-weight: bold; color: var(--success-green); padding-left: 100%; animation: scrollText 15s linear infinite; }
+        @keyframes scrollText { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+        .antiban-status i { font-size: 22px; color: #444; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .antiban-status.active i { color: var(--success-green); transform: scale(1.2); text-shadow: 0 0 15px rgba(0,255,136,0.8); }
+
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; height: 70px; display: flex; justify-content: space-around; align-items: center; background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--glass-border); z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); cursor: pointer; transition: all 0.3s ease; width: 25%; }
+        .nav-item i { font-size: 24px; margin-bottom: 4px; }
+        .nav-item span { font-size: 11px; font-weight: 500; }
+        .nav-item.active { color: var(--primary-red); }
+        .nav-item.active i { transform: scale(1.15) translateY(-2px); text-shadow: 0 0 10px rgba(255, 51, 51, 0.6); }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .placeholder-tab { height: 100%; justify-content: center; align-items: center; text-align: center; }
+        .placeholder-tab i.main-icon { font-size: 80px; color: rgba(255, 51, 51, 0.3); margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <div id="toast"></div>
+
+    <div class="modal-overlay" id="game-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Chọn Phiên Bản Game</h3>
+                <p>Hệ thống sẽ áp dụng mã cho phiên bản này</p>
+            </div>
+            <div class="game-option" onclick="selectGame('Free Fire Thường')">
+                <i class="fa-solid fa-gamepad"></i>
+                <span>Free Fire Thường</span>
+            </div>
+            <div class="game-option" onclick="selectGame('Free Fire MAX')">
+                <i class="fa-solid fa-gamepad"></i>
+                <span>Free Fire MAX</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="top-bar">
+        <i class="fa-solid fa-expand icon"></i>
+        <div class="logo-container">
+            <img src="https://i.postimg.cc/6qnLYH1T/4759A0B8-E067-4933-A1B0-72F8BA84466B.png" alt="Logo">
+            <div class="logo-text">chunhatpham</div>
+        </div>
+        <i class="fa-solid fa-cloud-arrow-down icon" id="install-btn"></i>
+    </div>
+
+    <div class="content-area">
+        <div id="tab-home" class="tab-content active">
+            <div class="connection-header">
+                <div class="timer-box" id="uptime-timer">00:00:00</div>
+                <label class="switch" id="switch-wrapper">
+                    <input type="checkbox" id="power-toggle">
+                    <span class="slider"></span>
+                </label>
+                <div id="status-text" class="status-text">TRẠNG THÁI: TẮT NGUỒN</div>
+            </div>
+
+            <div class="action-menu">
+                <div class="action-card">
+                    <div class="left"><i class="fa-regular fa-folder-open"></i><span style="font-weight: 500; font-size: 15px;">File máy</span></div>
+                    <div><i class="fa-solid fa-chevron-right" style="color:#888; font-size: 14px;"></i></div>
+                </div>
+                <div class="action-card">
+                    <div class="left"><i class="fa-solid fa-mobile-screen"></i><span style="font-weight: 500; font-size: 15px;">Thông số thiết bị</span></div>
+                    <div><i class="fa-solid fa-chevron-right" style="color:#888; font-size: 14px;"></i></div>
+                </div>
+            </div>
+
+            <div class="section-title">Nhật ký hệ thống</div>
+            <div class="terminal-box" id="terminal-log">
+                <div class="log-line">> Hệ thống chờ lệnh...</div>
+            </div>
+
+            <div class="section-title">Game kết nối trong thiết bị</div>
+            <div class="game-card" onclick="openGameModal()">
+                <div class="left">
+                    <div class="game-icon"><i class="fa-solid fa-crosshairs"></i></div>
+                    <div class="game-info">
+                        <h4 id="selected-game-name">Chưa chọn Game</h4>
+                        <p id="game-status-text">Bấm để cấu hình mục tiêu...</p>
+                    </div>
+                </div>
+                <div class="right-arrow"><i class="fa-solid fa-pen-to-square"></i></div>
+            </div>
+
+            <div class="section-title">Thông số Game (Real-time)</div>
+            <div class="mini-stats-box">
+                <div class="stat-item">FPS: <span id="stat-fps">--</span></div>
+                <div class="stat-item">Ping: <span id="stat-ping">--</span> ms</div>
+                <div class="stat-item">Touch Delay: <span id="stat-delay">--</span> ms</div>
+                <div class="stat-item">Bypass: <span id="stat-bypass" style="color:#888;">Chờ</span></div>
+            </div>
+
+            <div class="section-title">Antiban</div>
+            <div class="antiban-container">
+                <div class="antiban-left">
+                    <i class="fa-solid fa-shield-halved antiban-icon"></i>
+                    <div class="marquee-box">
+                        <span class="marquee-text">Phần mềm không can thiệp vào data game của game trên thiết bị mà sẽ chạy server riêng để thao tác nên không bị quét và ban đối với user, bảo đảm tuyệt đối an toàn với thiết bị cá nhân và tài khoản của bạn.</span>
+                    </div>
+                </div>
+                <div class="antiban-status" id="antiban-check">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-file" class="tab-content placeholder-tab"><i class="fa-solid fa-folder-open main-icon"></i><h2 style="font-weight: 300;">Quản Lý File</h2></div>
+        <div id="tab-alert" class="tab-content placeholder-tab"><i class="fa-solid fa-triangle-exclamation main-icon"></i><h2 style="font-weight: 300;">Cảnh Báo</h2></div>
+        <div id="tab-settings" class="tab-content placeholder-tab"><i class="fa-solid fa-gear main-icon"></i><h2 style="font-weight: 300;">Cài Đặt</h2></div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('tab-home', this)"><i class="fa-solid fa-house"></i><span>Nhà</span></div>
+        <div class="nav-item" onclick="switchTab('tab-file', this)"><i class="fa-solid fa-folder"></i><span>File</span></div>
+        <div class="nav-item" onclick="switchTab('tab-alert', this)"><i class="fa-solid fa-triangle-exclamation"></i><span>Cảnh báo</span></div>
+        <div class="nav-item" onclick="switchTab('tab-settings', this)"><i class="fa-solid fa-gear"></i><span>Cài đặt</span></div>
+    </div>
+
+    <script>
+        // === KHỞI TẠO PWA VÀ NÚT CÀI ĐẶT ===
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js').then(() => console.log('Service Worker Đã Chạy'));
+        }
+
+        let deferredPrompt;
+        const installBtn = document.getElementById('install-btn');
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+        if (!isStandalone) { // Nếu chưa cài app vào máy
+            if (isIOS) {
+                // Trên iOS không tự bắt được sự kiện cài đặt, phải hướng dẫn thủ công
+                installBtn.style.display = 'block';
+                installBtn.addEventListener('click', () => {
+                    showToast("🍏 ĐỂ CÀI ĐẶT APP TRÊN iOS:\n1. Bấm nút Chia sẻ (Share) ở dưới Safari.\n2. Chọn 'Thêm vào MH chính' (Add to Home Screen).", 8000);
+                });
+            } else {
+                // Trên Android (Chrome)
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    deferredPrompt = e;
+                    installBtn.style.display = 'block'; // Hiện nút tải mây xanh
+                });
+
+                installBtn.addEventListener('click', async () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        if (outcome === 'accepted') { installBtn.style.display = 'none'; }
+                        deferredPrompt = null;
+                    }
+                });
+            }
+        }
+        // ======================================
+
+        function switchTab(tabId, element) {
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            element.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        const toast = document.getElementById('toast');
+        function showToast(message, duration = 4000) {
+            toast.innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, duration);
+        }
+
+        const gameModal = document.getElementById('game-modal');
+        const selectedGameName = document.getElementById('selected-game-name');
+        let currentGame = "Chưa chọn";
+
+        function openGameModal() { gameModal.classList.add('active'); }
+        function selectGame(gameName) {
+            currentGame = gameName;
+            selectedGameName.innerText = gameName; 
+            selectedGameName.style.color = "var(--primary-red)";
+            gameModal.classList.remove('active'); 
+            showToast("Đã lưu mục tiêu: " + gameName + ". Vui lòng bật hệ thống để bắt đầu!");
+        }
+        gameModal.addEventListener('click', function(e) { if (e.target === gameModal) { gameModal.classList.remove('active'); } });
+
+        const powerToggle = document.getElementById('power-toggle');
+        const switchWrapper = document.getElementById('switch-wrapper');
+        const statusText = document.getElementById('status-text');
+        const terminalLog = document.getElementById('terminal-log');
+        const timerBox = document.getElementById('uptime-timer');
+        const gameStatusText = document.getElementById('game-status-text');
+        const antibanCheck = document.getElementById('antiban-check'); 
+
+        const statFps = document.getElementById('stat-fps');
+        const statPing = document.getElementById('stat-ping');
+        const statDelay = document.getElementById('stat-delay');
+        const statBypass = document.getElementById('stat-bypass');
+
+        let logInterval, statsInterval, timerInterval;
+        let secondsPassed = 0;
+
+        function formatTime(sec) {
+            const h = String(Math.floor(sec / 3600)).padStart(2, '0');
+            const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+            const s = String(sec % 60).padStart(2, '0');
+            return `${h}:${m}:${s}`;
+        }
+        function startTimer() { secondsPassed = 0; timerBox.innerText = formatTime(secondsPassed); timerBox.classList.add('active'); timerInterval = setInterval(() => { secondsPassed++; timerBox.innerText = formatTime(secondsPassed); }, 1000); }
+        function stopTimer() { clearInterval(timerInterval); timerBox.classList.remove('active'); }
+
+        const proLogs = [ { text: "Đang kết nối tới máy chủ Antiban...", type: "" }, { text: "Cấp phép đường truyền bảo mật thành công.", type: "success" }, { text: "Bypass Anti-Cheat: Khởi tạo module ngầm...", type: "highlight" }, { text: "Áp dụng tốc độ game: Kích hoạt Fast-mode (x1.2)", type: "success" }, { text: "Ép xung độ phản hồi cảm ứng: Giảm trễ (-15ms)", type: "highlight" }, { text: "Đang lọc IP rác, tối ưu hóa đường truyền Ping...", type: "" }, { text: "Hệ thống đã sẵn sàng hoạt động độc lập.", type: "success" } ];
+        function addLog(text, type = "") {
+            const time = new Date().toLocaleTimeString('vi-VN', { hour12: false });
+            const logLine = document.createElement('div');
+            logLine.className = `log-line ${type}`;
+            logLine.innerText = `[${time}] ${text}`;
+            terminalLog.appendChild(logLine);
+            terminalLog.scrollTop = terminalLog.scrollHeight;
+        }
+
+        function updateStats() { statFps.innerText = Math.floor(Math.random() * (62 - 58) + 58); statPing.innerText = Math.floor(Math.random() * (25 - 12) + 12); statDelay.innerText = Math.floor(Math.random() * (8 - 4) + 4); }
+
+        powerToggle.addEventListener('change', function() {
+            if (this.checked) {
+                if (currentGame === "Chưa chọn") { this.checked = false; showToast("LỖI: Bạn chưa chọn phiên bản Game để áp dụng!"); return; }
+
+                switchWrapper.classList.add('loading');
+                statusText.innerText = 'ĐANG KHỞI TẠO...';
+                showToast("Hệ thống đang kiểm tra code của file...");
+                addLog("Bắt đầu tiến trình kiểm tra mã...", "highlight");
+
+                setTimeout(() => {
+                    switchWrapper.classList.remove('loading');
+                    statusText.innerText = 'TRẠNG THÁI: ĐÃ KẾT NỐI & ẨN DANH';
+                    statusText.classList.add('connected');
+                    gameStatusText.innerText = "Đã tiêm (Injected) - Sẵn sàng";
+                    gameStatusText.style.color = "var(--success-green)";
+                    statBypass.innerText = "Active"; statBypass.style.color = "var(--success-green)";
+                    antibanCheck.classList.add('active');
+                    startTimer(); updateStats(); statsInterval = setInterval(updateStats, 1000);
+
+                    let logIndex = 0;
+                    logInterval = setInterval(() => {
+                        if (logIndex < proLogs.length) { addLog(proLogs[logIndex].text, proLogs[logIndex].type); logIndex++; } 
+                        else { addLog(`Duy trì kết nối máy chủ an toàn... Ping: ${Math.floor(Math.random() * 20 + 10)}ms`); }
+                    }, 1500);
+                }, 3500);
+            } else {
+                switchWrapper.classList.add('loading');
+                statusText.innerText = 'ĐANG NGẮT KẾT NỐI...';
+                stopTimer(); clearInterval(logInterval); clearInterval(statsInterval);
+                addLog("Tiến trình đang được dọn dẹp và đóng gói...", "highlight");
+
+                setTimeout(() => {
+                    switchWrapper.classList.remove('loading');
+                    statusText.innerText = 'TRẠNG THÁI: TẮT NGUỒN';
+                    statusText.classList.remove('connected');
+                    gameStatusText.innerText = "Bấm để cấu hình mục tiêu..."; gameStatusText.style.color = "var(--text-muted)";
+                    statFps.innerText = "--"; statPing.innerText = "--"; statDelay.innerText = "--"; 
+                    statBypass.innerText = "Chờ"; statBypass.style.color = "#888";
+                    antibanCheck.classList.remove('active');
+                    showToast("Đã tắt app thành công !!");
+                    addLog("Ngắt kết nối thành công. An toàn thoát.", "success");
+                }, 2000);
+            }
+        });
+    </script>
+</body>
+</html>
