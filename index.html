@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>chunhatpham ff</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+    <link rel="apple-touch-icon" href="https://i.postimg.cc/6qnLYH1T/4759A0B8-E067-4933-A1B0-72F8BA84466B.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="chunhatpham">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ========================================================
+           1. CÀI ĐẶT GỐC & BIẾN MÀU SẮC
+           ======================================================== */
+        :root { --bg-color: #000000; --primary-red: #cc2222; --primary-red-glow: #ff3333; --glass-bg: rgba(20, 20, 20, 0.6); --glass-border: rgba(255, 51, 51, 0.2); --text-muted: #888888; --text-light: #ffffff; --success-green: #8bc34a; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-color); color: var(--text-light); height: 100vh; overflow: hidden; display: flex; flex-direction: column; user-select: none; -webkit-user-select: none; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ========================================================
+           2. TOAST, MODAL & POPUP
+           ======================================================== */
+        #toast { position: fixed; top: -100px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; padding: 15px 20px; background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 20px; color: var(--text-light); font-size: 13px; font-weight: 500; text-align: center; line-height: 1.5; box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 4000; transition: top 0.4s ease; }
+        #toast.show { top: 70px; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 2500; opacity: 0; transition: opacity 0.3s ease; }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal-content { background: rgba(20, 20, 20, 0.85); border: 1px solid var(--glass-border); border-radius: 20px; width: 85%; max-width: 350px; padding: 25px 20px; transform: translateY(50px); transition: transform 0.4s ease; box-shadow: 0 10px 40px rgba(255, 51, 51, 0.2); }
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+        .modal-header { text-align: center; margin-bottom: 20px; }
+        .modal-header h3 { font-size: 18px; color: var(--primary-red-glow); }
+        .modal-header p { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
+
+        #inject-modal .modal-content { text-align: center; }
+        .inject-icon { font-size: 40px; color: var(--primary-red-glow); margin-bottom: 15px; animation: spin 2s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .inject-progress { width: 100%; height: 6px; background: #333; border-radius: 10px; margin-top: 20px; overflow: hidden; position: relative; }
+        .inject-bar { width: 0%; height: 100%; background: var(--primary-red-glow); transition: width 0.3s; box-shadow: 0 0 10px var(--primary-red-glow); }
+
+        /* ========================================================
+           3. ACTION SHEET (MENU NHẤN GIỮ)
+           ======================================================== */
+        .action-sheet { position: fixed; bottom: -100%; left: 0; width: 100%; background: #1e1e1e; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 15px 0 30px; z-index: 2600; transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 -10px 30px rgba(0,0,0,0.8); max-height: 80vh; display: flex; flex-direction: column; }
+        .action-sheet.active { bottom: 0; }
+        .sheet-handle { width: 40px; height: 5px; background: #555; border-radius: 10px; margin: 0 auto 15px; flex-shrink: 0;}
+        .sheet-title { text-align: center; color: #fff; font-size: 16px; font-weight: bold; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 20px; flex-shrink: 0;}
+        .sheet-scroll { overflow-y: auto; flex: 1; }
+        .sheet-btn { display: flex; align-items: center; gap: 15px; padding: 14px 25px; font-size: 15px; color: #eee; cursor: pointer; transition: 0.2s; }
+        .sheet-btn:active { background: rgba(255,255,255,0.1); }
+        .sheet-btn i { font-size: 18px; width: 25px; text-align: center; color: #aaa; }
+        .sheet-btn.inject i { color: var(--primary-red-glow); } .sheet-btn.inject { color: var(--primary-red-glow); font-weight: bold; }
+        .sheet-btn.danger i, .sheet-btn.danger { color: #ff4d4d; }
+
+        /* ========================================================
+           4. MENU ZARCHIVER (3 CHẤM & VIEW)
+           ======================================================== */
+        .z-dropdown { position: absolute; top: 60px; right: 10px; background: #2a2a2a; border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.6); z-index: 2000; display: none; flex-direction: column; min-width: 180px; padding: 5px 0; border: 1px solid #444;}
+        .z-dropdown.active { display: flex; animation: fadeIn 0.2s ease; }
+        .z-dropdown-item { padding: 12px 20px; color: #fff; font-size: 15px; display: flex; align-items: center; gap: 15px; cursor: pointer; }
+        .z-dropdown-item:active { background: rgba(255,255,255,0.1); }
+        .z-dropdown-item i { width: 20px; text-align: center; font-size: 16px;}
+
+        .z-view-popup { position: absolute; top: 60px; right: 50px; background: #2a2a2a; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.6); z-index: 2000; display: none; flex-direction: column; width: 280px; padding: 15px; border: 1px solid #444;}
+        .z-view-popup.active { display: flex; animation: fadeIn 0.2s ease; }
+        .z-vp-section { margin-bottom: 15px; }
+        .z-vp-title { font-size: 14px; color: #fff; font-weight: 500; margin-bottom: 10px; }
+        .z-vp-grid { display: flex; justify-content: space-between; }
+        .z-vp-item { display: flex; flex-direction: column; align-items: center; gap: 5px; color: #aaa; cursor: pointer; flex: 1; }
+        .z-vp-item i { font-size: 22px; }
+        .z-vp-item span { font-size: 11px; }
+        .z-vp-item.active { color: #fff; border-bottom: 2px solid var(--success-green); padding-bottom: 2px; }
+        .z-vp-item.active i { color: #fff; }
+
+        /* ========================================================
+           5. TOP BAR & BỐ CỤC CHÍNH
+           ======================================================== */
+        .top-bar { position: fixed; top: 0; width: 100%; height: 60px; display: flex; align-items: center; padding: 0 20px; background: var(--glass-bg); backdrop-filter: blur(20px); border-bottom: 1px solid var(--glass-border); z-index: 100; padding-top: env(safe-area-inset-top); }
+        .top-bar .icon { font-size: 24px; color: var(--text-light); cursor: pointer; }
+        .logo-container { display: flex; align-items: center; justify-content: center; flex: 1; }
+        .logo-container img { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--primary-red-glow); margin-right: 10px; }
+        .top-bar .logo-text { font-size: 20px; font-weight: 700; color: var(--primary-red-glow); letter-spacing: 1px; text-shadow: 0 0 10px rgba(255, 51, 51, 0.4); }
+
+        #install-btn { display: none; color: var(--success-green); text-shadow: 0 0 10px rgba(0,255,136,0.6); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+        .content-area { flex: 1; margin-top: 60px; margin-bottom: 70px; overflow-y: auto; overflow-x: hidden; position: relative; }
+        .content-area.padding { padding: 20px; } 
+        .content-area.no-padding { padding: 0; } 
+        
+        .tab-content { display: none; flex-direction: column; min-height: 100%; animation: fadeIn 0.3s ease forwards; padding-bottom: 30px; }
+        .tab-content.active { display: flex; }
+        .placeholder-tab { justify-content: center; align-items: center; text-align: center; }
+        .placeholder-tab.active { display: flex; flex-direction: column; }
+        .placeholder-tab i.main-icon { font-size: 80px; color: rgba(255, 51, 51, 0.3); margin-bottom: 20px; }
+
+        .section-title { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; margin-top: 10px; }
+        .sub-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px; }
+        .sub-header h2 { font-size: 18px; font-weight: 600; color: #fff; margin: 0; }
+        .back-btn { font-size: 22px; color: var(--primary-red-glow); cursor: pointer; padding: 5px 15px 5px 0; }
+
+        /* ========================================================
+           6. CÁC THÀNH PHẦN TRANG CHỦ & THÔNG SỐ
+           ======================================================== */
+        .connection-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; }
+        .timer-box { font-size: 24px; font-weight: 700; color: var(--text-muted); font-family: 'Courier New', Courier, monospace; margin-bottom: 10px; transition: color 0.3s; }
+        .timer-box.active { color: var(--success-green); text-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
+        .switch { position: relative; display: inline-block; width: 100px; height: 50px; margin-bottom: 10px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #222; transition: .4s; border-radius: 50px; border: 2px solid #333; }
+        .slider:before { position: absolute; content: ""; height: 40px; width: 40px; left: 3px; bottom: 3px; background-color: #fff; transition: .4s; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+        input:checked + .slider { background-color: var(--primary-red); border-color: var(--primary-red); box-shadow: 0 0 20px rgba(255, 51, 51, 0.6); }
+        input:checked + .slider:before { transform: translateX(50px); }
+        .switch.loading { pointer-events: none; opacity: 0.7; }
+        .status-text { font-size: 14px; font-weight: 600; color: var(--text-muted); }
+        .status-text.connected { color: var(--primary-red-glow); }
+
+        .action-menu { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+        .action-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 14px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; }
+        .action-card:active { transform: scale(0.97); background: rgba(255, 51, 51, 0.1); }
+        .action-card .left { display: flex; align-items: center; gap: 12px; }
+        .action-card .left i { font-size: 18px; color: var(--primary-red-glow); width: 24px; text-align: center; }
+
+        .terminal-box { display: block !important; width: 100%; height: 350px !important; min-height: 350px !important; flex-shrink: 0 !important; background: rgba(10, 10, 10, 0.85); border: 1px solid rgba(255, 51, 51, 0.4); border-radius: 12px; margin-bottom: 20px; padding: 16px 18px; overflow-y: auto; overflow-x: hidden; font-family: 'Courier New', Courier, monospace; font-size: 13px; color: #ccc; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(0, 0, 0, 0.5); word-wrap: break-word; }
+        .terminal-box .log-line { margin-bottom: 8px; line-height: 1.6; }
+        .terminal-box .log-line.highlight { color: var(--primary-red-glow); font-weight: bold; }
+        .terminal-box .log-line.success { color: var(--success-green); }
+
+        .server-monitor-box { display: block !important; width: 100%; height: 300px !important; min-height: 300px !important; flex-shrink: 0 !important; background: #030303; border: 1px solid rgba(0, 255, 136, 0.4); border-radius: 12px; padding: 15px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.8), inset 0 0 15px rgba(0, 255, 136, 0.05); word-wrap: break-word; }
+        .server-monitor-box .log-line { margin-bottom: 6px; line-height: 1.5; color: #aaa; }
+        .server-monitor-box .log-line.ip { color: #00ff88; font-weight: bold; } 
+        .server-monitor-box .log-line.feature { color: #ffeb3b; } 
+        .server-monitor-box .log-line.system { color: #ff3333; } 
+
+        .game-option { background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; margin-bottom: 12px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.2s; }
+        .game-option:active { transform: scale(0.95); background: rgba(255, 51, 51, 0.2); border-color: var(--primary-red); }
+        .game-option i { font-size: 24px; color: #fff; background: var(--primary-red); padding: 10px; border-radius: 8px; }
+        .game-option span { font-size: 16px; font-weight: bold; }
+
+        .game-card { background: linear-gradient(135deg, rgba(30,30,30,0.8), rgba(15,15,15,0.8)); border: 1px dashed rgba(255, 51, 51, 0.5); border-radius: 12px; padding: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; cursor: pointer; transition: 0.3s; }
+        .game-card:active { background: rgba(255,51,51,0.2); }
+        .game-card .left { display: flex; align-items: center; gap: 15px; }
+        .game-card .game-icon { width: 40px; height: 40px; background: var(--primary-red); border-radius: 10px; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; box-shadow: 0 0 10px rgba(255,51,51,0.5); }
+        .game-card .game-info h4 { font-size: 15px; margin-bottom: 3px; color: #fff; }
+        .game-card .game-info p { font-size: 12px; color: var(--text-muted); }
+        .game-card .right-arrow { color: var(--primary-red-glow); font-size: 18px; }
+
+        .mini-stats-box { flex-shrink: 0; background: rgba(0, 0, 0, 0.8); border: 1px solid var(--glass-border); border-radius: 10px; padding: 12px; font-family: 'Courier New', Courier, monospace; font-size: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; color: #ddd; margin-bottom: 20px; }
+        .stat-item span { font-weight: bold; color: var(--primary-red-glow); }
+
+        .antiban-container { flex-shrink: 0; background: linear-gradient(90deg, rgba(15,15,15,0.9), rgba(5,5,5,0.9)); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; }
+        .antiban-left { display: flex; align-items: center; gap: 15px; width: 85%; }
+        .antiban-icon { font-size: 24px; color: var(--primary-red-glow); text-shadow: 0 0 15px rgba(255,51,51,0.6); }
+        .marquee-box { overflow: hidden; white-space: nowrap; width: 100%; position: relative; display: flex; align-items: center; }
+        .marquee-text { display: inline-block; font-size: 12px; font-weight: bold; color: var(--success-green); padding-left: 100%; animation: scrollText 15s linear infinite; }
+        @keyframes scrollText { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+        .antiban-status i { font-size: 22px; color: #444; transition: all 0.4s; }
+        .antiban-status.active i { color: var(--success-green); transform: scale(1.2); text-shadow: 0 0 15px rgba(0,255,136,0.8); }
+
+        .os-selector { display: flex; gap: 15px; margin-bottom: 25px; }
+        .os-card { flex: 1; background: rgba(20, 20, 20, 0.7); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 15px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.3s; }
+        .os-card i { font-size: 28px; color: var(--text-muted); transition: 0.3s; }
+        .os-card span { font-size: 14px; font-weight: bold; color: var(--text-muted); transition: 0.3s; }
+        .os-card.active { background: rgba(255, 51, 51, 0.15); border-color: var(--primary-red-glow); box-shadow: 0 0 15px rgba(255, 51, 51, 0.2); }
+        .os-card.active i, .os-card.active span { color: var(--primary-red-glow); text-shadow: 0 0 10px rgba(255,51,51,0.5); }
+
+        .device-info-list { background: rgba(15, 15, 15, 0.8); border: 1px solid var(--glass-border); border-radius: 16px; overflow: hidden; margin-bottom: 25px; }
+        .info-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .info-row:last-child { border-bottom: none; }
+        .info-row .info-label { color: #fff; font-size: 14px; font-weight: 500; }
+        .info-row .info-value { color: var(--text-muted); font-size: 14px; text-align: right; max-width: 60%; }
+        
+        .server-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px; }
+        .server-card { background: rgba(20, 20, 20, 0.7); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 15px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.3s ease; }
+        .server-card .server-left { display: flex; align-items: center; gap: 15px; }
+        .server-icon { background: rgba(255,255,255,0.1); width: 40px; height: 40px; border-radius: 10px; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 18px; }
+        .server-info h4 { font-size: 15px; color: #fff; margin-bottom: 4px; }
+        .server-info p { font-size: 11px; color: var(--text-muted); }
+        .server-check { font-size: 20px; color: transparent; transition: 0.3s; }
+        .server-card.active { background: rgba(255, 51, 51, 0.15); border-color: var(--primary-red-glow); box-shadow: 0 0 15px rgba(255, 51, 51, 0.2); }
+        .server-card.active .server-icon { background: var(--primary-red-glow); box-shadow: 0 0 10px rgba(255,51,51,0.5); }
+        .server-card.active .server-check { color: var(--primary-red-glow); }
+
+        /* ========================================================
+           7. QUẢN LÝ FILE ZARCHIVER STYLE & NÚT CỘNG CỐ ĐỊNH
+           ======================================================== */
+        .zarchiver-header { display: flex; align-items: center; justify-content: space-between; padding: 15px 15px 10px 15px; background: #222; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .z-left { display: flex; align-items: center; gap: 15px; }
+        .z-left .fa-arrow-left { font-size: 20px; color: #fff; cursor: pointer; padding: 5px;}
+        .z-path { display: flex; flex-direction: column; }
+        .z-path-top { font-size: 18px; font-weight: bold; color: #fff; margin-bottom: 2px;}
+        .z-path-bottom { font-size: 13px; color: #ccc; display: flex; align-items: center; gap: 5px;}
+        .z-actions { display: flex; gap: 20px; color: #fff; font-size: 18px; position: relative;}
+        .z-actions i { cursor: pointer; padding: 5px; }
+
+        .file-list-container { display: flex; flex-direction: column; padding-bottom: 90px; }
+        
+        .z-item { display: flex; align-items: center; padding: 12px 15px; cursor: pointer; transition: background 0.2s; position: relative; }
+        .z-item:active { background: rgba(255,255,255,0.1); }
+        
+        .z-icon { width: 45px; height: 45px; position: relative; display: flex; justify-content: center; align-items: center; margin-right: 15px; }
+        .z-icon .fa-folder { color: #FFD54F; font-size: 42px; text-shadow: 0 2px 2px rgba(0,0,0,0.3); }
+        .z-icon .overlay-icon { position: absolute; font-size: 14px; color: #fff; top: 16px; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+        .z-icon .fa-arrow-up { color: var(--success-green); font-size: 32px; }
+
+        .z-details { flex: 1; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; display: flex; flex-direction: column; justify-content: center; overflow: hidden;}
+        .z-details h4 { color: #fff; font-size: 16px; font-weight: 500; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 8px;}
+        .z-details p { color: #999; font-size: 12px; display: flex; justify-content: space-between; }
+        
+        .z-item.vip { background: rgba(255, 215, 0, 0.05); }
+        .z-item.vip .fa-file-shield { color: #FFD700; font-size: 36px; text-shadow: 0 0 10px rgba(255,215,0,0.5); }
+        .z-item.normal .fa-file-code { color: var(--primary-red-glow); font-size: 36px; }
+
+        .vip-tag { background: #FFD700; color: #000; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: bold; box-shadow: 0 0 5px rgba(255,215,0,0.5); text-transform: uppercase; }
+        .active-tag { background: var(--success-green); color: #000; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: bold; text-transform: uppercase; }
+
+        .file-checkbox { display: none; width: 22px; height: 22px; border: 2px solid #777; border-radius: 50%; margin-right: 15px; justify-content: center; align-items: center; transition: 0.2s; }
+        .selection-mode .file-checkbox { display: flex; }
+        .file-checkbox.checked { background: var(--success-green); border-color: var(--success-green); }
+        .file-checkbox.checked:after { content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: white; font-size: 12px; }
+        .z-item.disabled-check { opacity: 0.5; pointer-events: none; }
+
+        .selection-header { position: fixed; top: -60px; width: 100%; height: 60px; background: rgba(40,0,0,0.95); backdrop-filter: blur(20px); border-bottom: 1px solid var(--primary-red); z-index: 3500; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; transition: top 0.3s; }
+        .selection-header.active { top: 0; }
+        .selection-header span { font-size: 16px; font-weight: bold; color: #fff; }
+        .selection-header button { background: none; border: none; color: #fff; font-size: 15px; font-weight: bold; cursor: pointer; padding: 5px 10px; }
+        .selection-header button.btn-del { color: var(--primary-red); }
+
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; text-align: center; margin-top: 80px; }
+        .empty-state i { font-size: 60px; color: rgba(255, 51, 51, 0.2); margin-bottom: 15px; }
+        .empty-state p { color: var(--text-muted); font-size: 14px; }
+
+        /* ĐÃ FIX: NÚT CỘNG (+) NẰM NGOÀI CONTENT ĐỂ CỐ ĐỊNH HOÀN TOÀN, ĐỔI MÀU ĐỎ */
+        .fab-container { position: fixed; bottom: 85px; right: 20px; z-index: 2000; display: flex; flex-direction: column-reverse; align-items: center; gap: 15px; }
+        .fab-main { width: 56px; height: 56px; background-color: var(--primary-red); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 24px; box-shadow: 0 4px 12px rgba(204, 34, 34, 0.5); cursor: pointer; transition: 0.3s; }
+        .fab-main.active { transform: rotate(45deg); background-color: #aa1111; }
+        
+        .fab-sub { width: 45px; height: 45px; background: var(--primary-red); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 18px; box-shadow: 0 4px 10px rgba(204,34,34,0.5); cursor: pointer; opacity: 0; pointer-events: none; transform: translateY(20px); transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .fab-container.active .fab-sub { opacity: 1; pointer-events: auto; transform: translateY(0); }
+        .fab-sub:active { transform: scale(0.9) !important; }
+        .fab-sub:nth-child(2) { transition-delay: 0.05s; }
+        .fab-sub:nth-child(3) { transition-delay: 0.1s; }
+        .fab-sub:nth-child(4) { transition-delay: 0.15s; }
+
+        /* ========================================================
+           8. BOTTOM MENU CHÍNH
+           ======================================================== */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; height: 70px; display: flex; justify-content: space-around; align-items: center; background: var(--glass-bg); backdrop-filter: blur(20px); border-top: 1px solid var(--glass-border); z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); cursor: pointer; width: 25%; transition: all 0.3s ease; }
+        .nav-item i { font-size: 24px; margin-bottom: 4px; }
+        .nav-item span { font-size: 11px; font-weight: 500; }
+        .nav-item.active { color: var(--primary-red-glow); }
+        .nav-item.active i { transform: scale(1.15) translateY(-2px); text-shadow: 0 0 10px rgba(255, 51, 51, 0.6); }
+    </style>
+</head>
+<body>
+
+    <div id="toast"></div>
+
+    <div class="modal-overlay" id="game-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Chọn Phiên Bản Game</h3><p>Hệ thống sẽ áp dụng mã cho phiên bản này</p></div>
+            <div class="game-option" onclick="selectGame('Free Fire Thường')"><i class="fa-solid fa-gamepad"></i><span>Free Fire Thường</span></div>
+            <div class="game-option" onclick="selectGame('Free Fire MAX')"><i class="fa-solid fa-gamepad"></i><span>Free Fire MAX</span></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="inject-modal">
+        <div class="modal-content">
+            <i class="fa-solid fa-microchip inject-icon"></i>
+            <h3 style="color: #fff; margin-bottom: 5px;">Đang Kích Hoạt File...</h3>
+            <p id="inject-file-name" style="color: var(--primary-red-glow); font-weight: bold;">tên file</p>
+            <p id="inject-file-size" style="margin-top: 5px; font-size: 11px;">Kích thước: --</p>
+            <div class="inject-progress"><div class="inject-bar" id="inject-bar"></div></div>
+            <p id="inject-status" style="margin-top: 10px; font-size: 11px; color: var(--text-muted);">Đang phân tích cấu trúc...</p>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="view-modal">
+        <div class="modal-content" style="text-align: left;">
+            <h3 style="margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">Chi Tiết File/Thư Mục</h3>
+            <p><b>Tên:</b> <span id="v-name" style="color:#fff;">-</span></p>
+            <p style="margin-top:8px;"><b>Loại tệp:</b> <span id="v-type" style="color:var(--primary-red-glow);">-</span></p>
+            <p style="margin-top:8px;"><b>Thông tin:</b> <span id="v-size" style="color:#fff;">-</span></p>
+            <p style="margin-top:8px;"><b>Sửa đổi:</b> <span id="v-time" style="color:#fff;">-</span></p>
+            <div style="text-align:center; margin-top: 20px;">
+                <button onclick="document.getElementById('view-modal').classList.remove('active')" style="background:var(--primary-red); color:#fff; border:none; padding:8px 25px; border-radius:8px; font-weight:bold; cursor:pointer;">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="sheet-overlay"></div>
+    <div class="action-sheet" id="action-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title" id="sheet-title">Tên Mục</div>
+        <div class="sheet-scroll">
+            <div class="sheet-btn inject" id="btn-kich"><i class="fa-solid fa-bolt"></i> Kích hoạt (Inject)</div>
+            <div class="sheet-btn" onclick="closeActionSheet(); showToast('Đang nén file thành .zip...')"><i class="fa-solid fa-file-zipper"></i> Nén vào *.zip</div>
+            <div class="sheet-btn" onclick="closeActionSheet(); showToast('Đang nén file thành .7z...')"><i class="fa-solid fa-file-zipper"></i> Nén vào *.7z</div>
+            <div class="sheet-btn" onclick="closeActionSheet(); showToast('Mở tùy chọn nén nâng cao...')"><i class="fa-solid fa-compress"></i> Nén...</div>
+            <div class="sheet-btn" onclick="closeActionSheet(); showToast('Đã copy vào clipboard.')"><i class="fa-solid fa-copy"></i> Sao chép</div>
+            <div class="sheet-btn" onclick="closeActionSheet(); showToast('Đã cắt mục.')"><i class="fa-solid fa-scissors"></i> Cắt</div>
+            <div class="sheet-btn danger" id="btn-xoa"><i class="fa-solid fa-trash-can"></i> Xóa</div>
+            <div class="sheet-btn" onclick="closeActionSheet(); showToast('Tính năng đổi tên sẽ ra mắt sau.')"><i class="fa-solid fa-pen"></i> Đổi tên</div>
+            <div class="sheet-btn" id="btn-xem"><i class="fa-solid fa-circle-info"></i> Thông tin</div>
+            <div class="sheet-btn" onclick="closeActionSheet(); showToast('Đã thêm vào mục Yêu thích!')"><i class="fa-solid fa-bookmark"></i> Thêm vào yêu thích</div>
+            <div class="sheet-btn" id="btn-chon"><i class="fa-solid fa-check-square"></i> Chọn (Multi-select)</div>
+            <div class="sheet-btn" id="btn-chon-tat-ca"><i class="fa-solid fa-list-check"></i> Chọn tất cả</div>
+        </div>
+    </div>
+
+    <div class="selection-header" id="selection-header">
+        <button onclick="cancelSelection()">Hủy</button>
+        <span id="select-count">Đã chọn 0</span>
+        <button class="btn-del" onclick="deleteSelected()"><i class="fa-solid fa-trash"></i> Xóa</button>
+    </div>
+
+    <div class="top-bar">
+        <i class="fa-solid fa-expand icon"></i>
+        <div class="logo-container">
+            <img src="https://i.postimg.cc/6qnLYH1T/4759A0B8-E067-4933-A1B0-72F8BA84466B.png" alt="Logo">
+            <div class="logo-text">chunhatpham</div>
+        </div>
+        <div style="width: 24px;"></div>
+    </div>
+
+    <div class="content-area padding" id="main-content-area">
+        
+        <div id="tab-home" class="tab-content active">
+            <div class="connection-header">
+                <div class="timer-box" id="uptime-timer">00:00:00</div>
+                <label class="switch" id="switch-wrapper">
+                    <input type="checkbox" id="power-toggle">
+                    <span class="slider"></span>
+                </label>
+                <div id="status-text" class="status-text">TRẠNG THÁI: TẮT NGUỒN</div>
+            </div>
+
+            <div class="action-menu">
+                <div class="action-card" onclick="openSubTab('tab-device-file')">
+                    <div class="left"><i class="fa-solid fa-microchip"></i><span style="font-weight: 500; font-size: 15px;">File Đã Kích (Thiết bị)</span></div>
+                    <div><i class="fa-solid fa-chevron-right" style="color:#888; font-size: 14px;"></i></div>
+                </div>
+                <div class="action-card" onclick="openSubTab('tab-device-info')">
+                    <div class="left"><i class="fa-solid fa-mobile-screen"></i><span style="font-weight: 500; font-size: 15px;">Thông số thiết bị</span></div>
+                    <div><i class="fa-solid fa-chevron-right" style="color:#888; font-size: 14px;"></i></div>
+                </div>
+            </div>
+
+            <div class="section-title">Nhật ký hệ thống</div>
+            <div class="terminal-box" id="terminal-log">
+                <div class="log-line">> Hệ thống chờ lệnh...</div>
+            </div>
+
+            <div class="section-title">Game kết nối trong thiết bị</div>
+            <div class="game-card" onclick="openGameModal()">
+                <div class="left"><div class="game-icon"><i class="fa-solid fa-crosshairs"></i></div>
+                    <div class="game-info"><h4 id="selected-game-name">Chưa chọn Game</h4><p id="game-status-text">Bấm để cấu hình mục tiêu...</p></div>
+                </div>
+                <div class="right-arrow"><i class="fa-solid fa-pen-to-square"></i></div>
+            </div>
+
+            <div class="section-title">Thông số Game (Real-time)</div>
+            <div class="mini-stats-box">
+                <div class="stat-item">FPS: <span id="stat-fps">--</span></div><div class="stat-item">Ping: <span id="stat-ping">--</span> ms</div>
+                <div class="stat-item">Touch Delay: <span id="stat-delay">--</span> ms</div><div class="stat-item">Bypass: <span id="stat-bypass" style="color:#888;">Chờ</span></div>
+            </div>
+
+            <div class="section-title">Antiban</div>
+            <div class="antiban-container">
+                <div class="antiban-left"><i class="fa-solid fa-shield-halved antiban-icon"></i>
+                    <div class="marquee-box"><span class="marquee-text">Phần mềm không can thiệp vào data game của game trên thiết bị mà sẽ chạy server riêng để thao tác nên không bị quét và ban đối với user, bảo đảm tuyệt đối an toàn với thiết bị cá nhân và tài khoản của bạn.</span></div>
+                </div>
+                <div class="antiban-status" id="antiban-check"><i class="fa-solid fa-circle-check"></i></div>
+            </div>
+        </div>
+
+        <div id="tab-device-file" class="tab-content">
+            <div class="sub-header">
+                <i class="fa-solid fa-chevron-left back-btn" onclick="openSubTab('tab-home')"></i>
+                <h2>File Trong Thiết Bị</h2>
+                <div style="width: 24px;"></div>
+            </div>
+            <p style="color: var(--success-green); font-size: 12px; text-align: center; margin-bottom: 15px;">Chỉ hiển thị các file đã Kích hoạt thành công</p>
+            
+            <div class="file-list-container" id="device-file-list" style="gap: 12px; padding-bottom: 20px;"></div>
+            
+            <div class="empty-state" id="empty-device-state">
+                <i class="fa-solid fa-microchip"></i>
+                <p>Chưa có file nào được nạp vào máy.<br>Vui lòng qua tab "File" để Kích hoạt.</p>
+            </div>
+        </div>
+
+        <div id="tab-device-info" class="tab-content">
+            <div class="sub-header">
+                <i class="fa-solid fa-chevron-left back-btn" onclick="openSubTab('tab-home')"></i>
+                <h2>Thông Số Thiết Bị</h2>
+                <div style="width: 24px;"></div>
+            </div>
+            
+            <div class="section-title">Chọn Hệ Điều Hành</div>
+            <div class="os-selector">
+                <div class="os-card active" onclick="selectOS(this, 'iOS')"><i class="fa-brands fa-apple"></i><span>iOS</span></div>
+                <div class="os-card" onclick="selectOS(this, 'Android')"><i class="fa-brands fa-android"></i><span>Android</span></div>
+            </div>
+
+            <div class="section-title">Thông tin phần cứng</div>
+            <div class="device-info-list">
+                <div class="info-row"><span class="info-label">Tên thiết bị</span><span class="info-value" id="hw-name">Đang chờ...</span></div>
+                <div class="info-row"><span class="info-label">Tên máy</span><span class="info-value" id="hw-model">Đang quét...</span></div>
+                <div class="info-row"><span class="info-label">Số máy</span><span class="info-value" id="hw-number">Đang quét...</span></div>
+                <div class="info-row"><span class="info-label">Số Sê-ri</span><span class="info-value" id="hw-serial">Đang quét...</span></div>
+                <div class="info-row"><span class="info-label">Dung lượng máy</span><span class="info-value" id="hw-storage">Đang quét...</span></div>
+            </div>
+
+            <div class="section-title">Chọn Server Kích Hoạt</div>
+            <div class="server-list">
+                <div class="server-card active" onclick="selectServer(this, 'Server 1')"><div class="server-left"><div class="server-icon"><i class="fa-solid fa-network-wired"></i></div><div class="server-info"><h4>Server 1</h4><p>Bảo mật: Cao | Tốc độ: Max</p></div></div><i class="fa-solid fa-circle-check server-check"></i></div>
+                <div class="server-card" onclick="selectServer(this, 'Server 2')"><div class="server-left"><div class="server-icon"><i class="fa-solid fa-globe"></i></div><div class="server-info"><h4>Server 2</h4><p>Bảo mật: Cao | Tốc độ: Max</p></div></div><i class="fa-solid fa-circle-check server-check"></i></div>
+                <div class="server-card" onclick="selectServer(this, 'Server 3')"><div class="server-left"><div class="server-icon"><i class="fa-solid fa-user-secret"></i></div><div class="server-info"><h4>Server 3</h4><p>Bảo mật: Cao | Tốc độ: Max</p></div></div><i class="fa-solid fa-circle-check server-check"></i></div>
+            </div>
+
+            <div class="section-title">Giám sát Hoạt Động Server (Live Monitor)</div>
+            <div class="server-monitor-box" id="server-monitor-log"><div class="log-line">> Khởi tạo giám sát lưu lượng...</div></div>
+        </div>
+
+        <div id="tab-file" class="tab-content">
+            <div class="zarchiver-header">
+                <div class="z-left">
+                    <i class="fa-solid fa-arrow-left" onclick="navigateUpOrHome()"></i>
+                    <div class="z-path">
+                        <span class="z-path-top">0</span>
+                        <span class="z-path-bottom" id="z-path-bottom">/storage/emulated/0 <i class="fa-solid fa-caret-up" style="font-size:12px;"></i></span>
+                    </div>
+                </div>
+                <div class="z-actions">
+                    <i class="fa-solid fa-list-ul" id="btn-z-view"></i>
+                    <i class="fa-solid fa-ellipsis-vertical" id="btn-z-dots"></i>
+                    
+                    <div class="z-dropdown" id="menu-dots">
+                        <div class="z-dropdown-item" onclick="closeZMenus(); showToast('Tính năng Đa-chọn');"><i class="fa-solid fa-check-double"></i> Đa-chọn</div>
+                        <div class="z-dropdown-item" onclick="closeZMenus(); showToast('Tìm kiếm...');"><i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm</div>
+                        <div class="z-dropdown-item" onclick="closeZMenus(); showToast('Tạo mới...');"><i class="fa-solid fa-folder-plus"></i> Tạo <i class="fa-solid fa-caret-right" style="margin-left:auto;"></i></div>
+                        <div class="z-dropdown-item" onclick="closeZMenus(); switchTab('tab-settings', document.getElementById('nav-settings'));"><i class="fa-solid fa-gear"></i> Cài đặt</div>
+                        <div class="z-dropdown-item" onclick="closeZMenus(); showToast('Thông tin app');"><i class="fa-solid fa-circle-question"></i> Về</div>
+                        <div class="z-dropdown-item" onclick="closeZMenus(); switchTab('tab-home', document.getElementById('nav-home'));"><i class="fa-solid fa-arrow-right-from-bracket"></i> Thoát</div>
+                    </div>
+
+                    <div class="z-view-popup" id="menu-view">
+                        <div class="z-vp-section">
+                            <div class="z-vp-title">Xem</div>
+                            <div class="z-vp-grid">
+                                <div class="z-vp-item active"><i class="fa-solid fa-list-ul"></i><span>Chi tiết</span></div>
+                                <div class="z-vp-item"><i class="fa-solid fa-list"></i><span>Kết hợp</span></div>
+                                <div class="z-vp-item"><i class="fa-solid fa-grip"></i><span>Lưới</span></div>
+                                <div class="z-vp-item"><i class="fa-solid fa-eye-slash"></i><span>Ẩn</span></div>
+                            </div>
+                        </div>
+                        <div class="z-vp-section" style="margin-bottom:0;">
+                            <div class="z-vp-title">Sắp xếp</div>
+                            <div class="z-vp-grid">
+                                <div class="z-vp-item active"><i class="fa-solid fa-arrow-down-a-z"></i><span>Tên</span></div>
+                                <div class="z-vp-item"><i class="fa-solid fa-arrow-down-short-wide"></i><span>Kích</span></div>
+                                <div class="z-vp-item"><i class="fa-regular fa-calendar-days"></i><span>Ngày</span></div>
+                                <div class="z-vp-item"><i class="fa-regular fa-file"></i><span>Kiểu</span></div>
+                                <div class="z-vp-item"><i class="fa-solid fa-arrow-up-down"></i><span>Mô tả</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="file-list-container" id="main-file-list" style="gap: 0; background: #1a1a1a; min-height: 100%;">
+                </div>
+        </div>
+
+        <div id="tab-alert" class="tab-content placeholder-tab">
+            <i class="fa-solid fa-triangle-exclamation main-icon"></i>
+            <h2 style="font-weight: 300;">Cảnh Báo</h2>
+            <p style="color:#888;">Nhật ký hệ thống & Lỗi bảo mật.</p>
+        </div>
+        <div id="tab-settings" class="tab-content placeholder-tab">
+            <i class="fa-solid fa-gear main-icon"></i>
+            <h2 style="font-weight: 300;">Cài Đặt</h2>
+            <p style="color:#888;">Cấu hình chuyên sâu hệ thống.</p>
+        </div>
+    </div>
+
+    <div class="fab-container" id="fab-container" style="display: none;">
+        <div class="fab-main" id="fab-main" onclick="toggleFab()"><i class="fa-solid fa-plus"></i></div>
+        <input type="file" id="native-file-input" style="display: none;" multiple>
+        
+        <div class="fab-sub" onclick="nativeFileInput.click(); toggleFab();"><i class="fa-solid fa-file"></i></div>
+        <div class="fab-sub" onclick="showToast('Chưa hỗ trợ nén Zip'); toggleFab();"><i class="fa-solid fa-file-zipper"></i></div>
+        <div class="fab-sub" onclick="showToast('Tạo thư mục mới'); toggleFab();"><i class="fa-solid fa-folder-plus"></i></div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" id="nav-home" onclick="switchTab('tab-home', this)"><i class="fa-solid fa-house"></i><span>Nhà</span></div>
+        <div class="nav-item" id="nav-file" onclick="switchTab('tab-file', this)"><i class="fa-solid fa-folder"></i><span>File</span></div>
+        <div class="nav-item" id="nav-alert" onclick="switchTab('tab-alert', this)"><i class="fa-solid fa-triangle-exclamation"></i><span>Cảnh báo</span></div>
+        <div class="nav-item" id="nav-settings" onclick="switchTab('tab-settings', this)"><i class="fa-solid fa-gear"></i><span>Cài đặt</span></div>
+    </div>
+
+    <script>
+        // ------------------ TOAST & CHUNG ------------------
+        const toast = document.getElementById('toast');
+        function showToast(message, duration = 3000) { toast.innerText = message; toast.classList.add('show'); setTimeout(() => { toast.classList.remove('show'); }, duration); }
+
+        // ------------------ ĐIỀU HƯỚNG TABS (FIXED LỖI CHỒNG CHÉO) ------------------
+        function switchTab(tabId, element) {
+            // Tắt active ở menu
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            element.classList.add('active');
+            
+            // Tắt toàn bộ nội dung của các tab
+            document.querySelectorAll('.tab-content').forEach(content => { content.classList.remove('active'); });
+            // Chỉ bật tab đích
+            document.getElementById(tabId).classList.add('active');
+            
+            const contentArea = document.getElementById('main-content-area');
+            const fab = document.getElementById('fab-container');
+            
+            // Xử lý giao diện đặc thù cho Tab File
+            if(tabId === 'tab-file') {
+                contentArea.classList.remove('padding');
+                contentArea.classList.add('no-padding');
+                fab.style.display = 'flex';
+                currentPath = '/storage/emulated/0'; // Reset về root
+                renderFiles();
+            } else {
+                contentArea.classList.remove('no-padding');
+                contentArea.classList.add('padding');
+                fab.style.display = 'none';
+            }
+        }
+
+        // Dùng để mở Sub-Tabs từ trong tab Home
+        function openSubTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            
+            // Nếu bấm quay lại Home thì trả lại trạng thái cho menu
+            if(tabId === 'tab-home') { 
+                document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active')); 
+                document.getElementById('nav-home').classList.add('active'); 
+            }
+            if(tabId === 'tab-device-info') { scanDeviceInfo(); }
+            
+            // Khôi phục padding chuẩn cho các Sub-Tabs
+            document.getElementById('main-content-area').classList.remove('no-padding');
+            document.getElementById('main-content-area').classList.add('padding');
+            document.getElementById('fab-container').style.display = 'none';
+        }
+
+        // ------------------ MODAL GAME & OS ------------------
+        const gameModal = document.getElementById('game-modal'); const selectedGameName = document.getElementById('selected-game-name'); let currentGame = "Chưa chọn";
+        function openGameModal() { gameModal.classList.add('active'); }
+        function selectGame(gameName) { currentGame = gameName; selectedGameName.innerText = gameName; selectedGameName.style.color = "var(--primary-red-glow)"; gameModal.classList.remove('active'); showToast("Đã lưu mục tiêu: " + gameName); }
+        gameModal.addEventListener('click', function(e) { if (e.target === gameModal) { gameModal.classList.remove('active'); } });
+
+        let currentOS = "iOS"; let currentServer = "Server 1";
+        function selectOS(element, osName) { document.querySelectorAll('.os-card').forEach(c => c.classList.remove('active')); element.classList.add('active'); currentOS = osName; showToast("Đã thiết lập HĐH: " + osName); scanDeviceInfo(); }
+        
+        function scanDeviceInfo() {
+            let deviceType = currentOS === "iOS" ? "Apple iPhone" : "Điện thoại Android"; let modelName = currentOS === "iOS" ? "iPhone Pro Max (Bảo mật)" : "Android System (Rooted)";
+            document.getElementById('hw-name').innerText = deviceType; document.getElementById('hw-model').innerText = modelName;
+            if(document.getElementById('hw-number').innerText === "Đang quét...") {
+                document.getElementById('hw-number').innerText = currentOS === "iOS" ? "MN" + Math.floor(Math.random() * 8999 + 1000) + "VN/A" : "SM-" + Math.floor(Math.random() * 8999 + 1000);
+                document.getElementById('hw-serial').innerText = (currentOS === "iOS" ? "C02" : "R5C") + Math.random().toString(36).substr(2, 8).toUpperCase();
+                const storages = ["128 GB", "256 GB", "512 GB", "1 TB"]; document.getElementById('hw-storage').innerText = storages[Math.floor(Math.random() * storages.length)];
+            }
+        }
+        function selectServer(element, serverName) { document.querySelectorAll('.server-card').forEach(card => card.classList.remove('active')); element.classList.add('active'); currentServer = serverName; showToast("Kết nối qua: " + serverName); }
+
+        const monitorLogBox = document.getElementById('server-monitor-log');
+        setInterval(() => {
+            const actions = [ { text: `[Connect] IP: 14.232.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)} | Ping: ${Math.floor(Math.random()*15+8)}ms`, type: "ip" }, { text: "[Kích hoạt] Chức năng: Kéo tâm VIP", type: "feature" }, { text: "[Hệ thống] Xóa log, chống check...", type: "system" }, { text: "[Inject] Bypass máy chủ Garena...", type: "feature" } ];
+            const action = actions[Math.floor(Math.random() * actions.length)]; const time = new Date().toLocaleTimeString('vi-VN', { hour12: false });
+            const logLine = document.createElement('div'); logLine.className = `log-line ${action.type}`; logLine.innerText = `[${time}] ${action.text}`;
+            if(monitorLogBox) { monitorLogBox.appendChild(logLine); monitorLogBox.scrollTop = monitorLogBox.scrollHeight; if(monitorLogBox.childNodes.length > 30) monitorLogBox.removeChild(monitorLogBox.firstChild); }
+        }, 1500);
+
+        // =========================================================================
+        // HỆ THỐNG VIRTUAL FILE SYSTEM (ZARCHIVER ĐỈNH CAO)
+        // =========================================================================
+        let currentPath = '/storage/emulated/0';
+
+        // Khai báo thư mục ảo
+        let zFolders = [
+            { id: 'f1', name: 'Alarms', icon: 'fa-folder', overlay: 'fa-clock', size: 'Trống', time: '01/01/2022', path: '/storage/emulated/0' },
+            { id: 'f2', name: 'Android', icon: 'fa-folder', overlay: 'fa-android', size: '3 mục', time: '23/12/2025', path: '/storage/emulated/0' },
+            { id: 'f_ios', name: 'iOS', icon: 'fa-folder', overlay: 'fa-apple', size: '1 mục', time: '02/04/2026', path: '/storage/emulated/0' },
+            { id: 'f3', name: 'Backup', icon: 'fa-folder', overlay: '', size: 'Trống', time: '03/05/2025', path: '/storage/emulated/0' },
+            { id: 'f4', name: 'Cardboard', icon: 'fa-folder', overlay: '', size: 'Trống', time: '18/08/2025', path: '/storage/emulated/0' },
+            { id: 'f5', name: 'ColorOS', icon: 'fa-folder', overlay: '', size: '2 mục', time: '30/04/2025', path: '/storage/emulated/0' },
+            { id: 'f6', name: 'DCIM', icon: 'fa-folder', overlay: 'fa-camera', size: '3 mục', time: '25/05/2025', path: '/storage/emulated/0' },
+            { id: 'f7', name: 'Documents', icon: 'fa-folder', overlay: 'fa-suitcase', size: '3 mục', time: '12/07/2025', path: '/storage/emulated/0' },
+            { id: 'f8', name: 'Download', icon: 'fa-folder', overlay: 'fa-download', size: '1 mục', time: '26/03/2025', path: '/storage/emulated/0' },
+            { id: 'f9', name: 'Movies', icon: 'fa-folder', overlay: 'fa-film', size: '1 mục', time: '01/05/2025', path: '/storage/emulated/0' },
+            { id: 'f10', name: 'Music', icon: 'fa-folder', overlay: 'fa-headphones', size: '2 mục', time: '04/06/2025', path: '/storage/emulated/0' },
+            { id: 'f11', name: 'Pictures', icon: 'fa-folder', overlay: 'fa-image', size: '3 mục', time: '27/05/2025', path: '/storage/emulated/0' },
+            { id: 'fa1', name: 'data', icon: 'fa-folder', overlay: '', size: '12 mục', time: '23/12/2025', path: '/storage/emulated/0/Android' },
+            { id: 'fa2', name: 'obb', icon: 'fa-folder', overlay: '', size: '2 mục', time: '23/12/2025', path: '/storage/emulated/0/Android' },
+            { id: 'fad1', name: 'com.dts.freefireth', icon: 'fa-folder', overlay: '', size: '2 mục', time: '15/01/2026', path: '/storage/emulated/0/Android/data' },
+            { id: 'fad2', name: 'com.dts.freefiremax', icon: 'fa-folder', overlay: '', size: '2 mục', time: '15/01/2026', path: '/storage/emulated/0/Android/data' },
+            { id: 'f_ios_1', name: 'System', icon: 'fa-folder', overlay: '', size: '5 mục', time: '02/04/2026', path: '/storage/emulated/0/iOS' }
+        ];
+
+        let myFiles = [
+            { id: 'vip1', name: 'nhatphamlogac v1-21', size: '1.2 MB', time: '12:30 28/03/2026', isVip: true, isActivated: false, path: '/storage/emulated/0' },
+            { id: 'vip2', name: 'nhatphamlogac v2-33', size: '2.8 MB', time: '09:15 29/03/2026', isVip: true, isActivated: false, path: '/storage/emulated/0' }
+        ];
+
+        let selectedFiles = new Set(); let isSelectionMode = false; let currentTargetId = null; let currentTargetIsFolder = false;
+        const mainFileList = document.getElementById('main-file-list'); 
+        const deviceFileList = document.getElementById('device-file-list');
+        const emptyDeviceState = document.getElementById('empty-device-state'); 
+        const nativeFileInput = document.getElementById('native-file-input');
+
+        // Nút Dropdown ZArchiver Menu
+        const btnDots = document.getElementById('btn-z-dots');
+        const btnView = document.getElementById('btn-z-view');
+        const menuDots = document.getElementById('menu-dots');
+        const menuView = document.getElementById('menu-view');
+        function closeZMenus() { menuDots.classList.remove('active'); menuView.classList.remove('active'); }
+        btnDots.addEventListener('click', (e) => { e.stopPropagation(); menuView.classList.remove('active'); menuDots.classList.toggle('active'); });
+        btnView.addEventListener('click', (e) => { e.stopPropagation(); menuDots.classList.remove('active'); menuView.classList.toggle('active'); });
+        document.addEventListener('click', closeZMenus);
+
+        // Toggle FAB Container (Mở rộng nút cộng)
+        function toggleFab() { document.getElementById('fab-container').classList.toggle('active'); document.getElementById('fab-main').classList.toggle('active'); }
+
+        // ĐIỀU HƯỚNG THƯ MỤC
+        function navigateToFolder(folderName) { if(isSelectionMode) return; currentPath += '/' + folderName; renderFiles(); }
+        function navigateUpOrHome() {
+            if(isSelectionMode) return;
+            if (currentPath === '/storage/emulated/0') { switchTab('tab-home', document.getElementById('nav-home')); } 
+            else { let parts = currentPath.split('/'); parts.pop(); currentPath = parts.join('/'); renderFiles(); }
+        }
+
+        // RENDER DANH SÁCH FILE VÀ FOLDER
+        function renderFiles() {
+            mainFileList.innerHTML = ''; deviceFileList.innerHTML = ''; let activatedCount = 0;
+            document.getElementById('z-path-bottom').innerHTML = `${currentPath} <i class="fa-solid fa-caret-up" style="font-size:12px;"></i>`;
+
+            // Render Thư mục Mũi tên Lùi (Trừ thư mục gốc)
+            if (currentPath !== '/storage/emulated/0') {
+                mainFileList.insertAdjacentHTML('beforeend', `
+                    <div class="z-item folder" onclick="navigateUpOrHome()">
+                        <div class="z-icon"><i class="fa-solid fa-arrow-up"></i></div>
+                        <div class="z-details" style="justify-content:center;"><h4 style="margin:0;">..</h4></div>
+                    </div>`);
+            }
+
+            // 1. Render VIP Files (chỉ ở thư mục khớp path)
+            myFiles.filter(f => f.isVip && f.path === currentPath).forEach(file => {
+                const isChecked = selectedFiles.has(file.id); const checkClass = isChecked ? 'checked' : '';
+                const disabledClass = isSelectionMode ? 'disabled-check' : '';
+                const actTag = file.isActivated ? `<span class="active-tag">ĐÃ KÍCH</span>` : `<span class="vip-tag">VIP</span>`;
+                mainFileList.insertAdjacentHTML('beforeend', `
+                    <div class="z-item vip ${disabledClass}" id="item-${file.id}">
+                        <div class="file-checkbox ${checkClass}" onclick="toggleSelect(event, '${file.id}')"></div>
+                        <div class="z-icon"><i class="fa-solid fa-file-shield"></i></div>
+                        <div class="z-details"><h4>${file.name} ${actTag}</h4><p><span>${file.size}</span><span>${file.time}</span></p></div>
+                    </div>`);
+                setupItemEvents(file.id, false, null);
+            });
+
+            // Cập nhật File Device Đã Kích
+            myFiles.filter(f => f.isActivated).forEach(file => { renderDeviceFile(file, file.isVip); });
+
+            // 2. Render Folders thuộc thư mục hiện tại
+            zFolders.filter(folder => folder.path === currentPath).forEach(folder => {
+                const isChecked = selectedFiles.has(folder.id); const checkClass = isChecked ? 'checked' : '';
+                const overlayHtml = folder.overlay ? `<i class="fa-brands ${folder.overlay} overlay-icon"></i><i class="fa-solid ${folder.overlay} overlay-icon"></i>` : '';
+                mainFileList.insertAdjacentHTML('beforeend', `
+                    <div class="z-item folder" id="item-${folder.id}">
+                        <div class="file-checkbox ${checkClass}" onclick="toggleSelect(event, '${folder.id}')"></div>
+                        <div class="z-icon"><i class="fa-solid ${folder.icon}"></i> ${overlayHtml}</div>
+                        <div class="z-details"><h4>${folder.name}</h4><p><span>${folder.size}</span><span>${folder.time}</span></p></div>
+                    </div>`);
+                setupItemEvents(folder.id, true, folder.name);
+            });
+
+            // 3. Render Normal User Files (thuộc thư mục hiện tại)
+            myFiles.filter(f => !f.isVip && f.path === currentPath).forEach(file => {
+                const isChecked = selectedFiles.has(file.id); const checkClass = isChecked ? 'checked' : '';
+                const actTag = file.isActivated ? `<span class="active-tag">ĐÃ KÍCH</span>` : '';
+                mainFileList.insertAdjacentHTML('beforeend', `
+                    <div class="z-item normal" id="item-${file.id}">
+                        <div class="file-checkbox ${checkClass}" onclick="toggleSelect(event, '${file.id}')"></div>
+                        <div class="z-icon"><i class="fa-solid fa-file-code"></i></div>
+                        <div class="z-details"><h4>${file.name} ${actTag}</h4><p><span>${file.size}</span><span>${file.time}</span></p></div>
+                    </div>`);
+                setupItemEvents(file.id, false, null);
+            });
+
+            function renderDeviceFile(file, isVip) {
+                activatedCount++;
+                const iconHtml = isVip ? `<i class="fa-solid fa-file-shield" style="color:#FFD700; font-size:30px;"></i>` : `<i class="fa-solid fa-file-code" style="color:var(--primary-red-glow); font-size:30px;"></i>`;
+                const vipClass = isVip ? 'vip' : 'normal';
+                deviceFileList.insertAdjacentHTML('beforeend', `
+                    <div class="file-item ${vipClass} activated" style="padding:14px; border-radius:14px; background:rgba(20,20,20,0.7); border:1px solid ${isVip?'rgba(255,215,0,0.5)':'rgba(0,255,136,0.4)'}; display:flex; align-items:center; gap:15px; margin-bottom: 12px;">
+                        <div class="file-icon-box" style="background:transparent; width:45px; display:flex; justify-content:center;">${iconHtml}</div>
+                        <div class="file-details" style="flex:1;">
+                            <h4 style="color:#fff; font-size:15px; margin-bottom:5px;">${file.name} <span class="active-tag" style="background:var(--success-green); color:#000; font-size:9px; padding:2px 6px; border-radius:4px;">HOẠT ĐỘNG</span></h4>
+                            <p style="color:#888; font-size:11px;">Đã nạp vào hệ thống thành công</p>
+                        </div>
+                    </div>`);
+            }
+            emptyDeviceState.style.display = activatedCount === 0 ? 'flex' : 'none';
+        }
+
+        // HÀM XỬ LÝ NHẤN GIỮ (LONG PRESS) & CLICK CỤ THỂ CHO TỪNG ITEM
+        function setupItemEvents(id, isFolder, folderName) {
+            const el = document.getElementById(`item-${id}`);
+            if(!el) return;
+            
+            let pressTimer;
+            let isLongPress = false;
+            
+            const start = (e) => {
+                if(isSelectionMode) return;
+                isLongPress = false;
+                pressTimer = setTimeout(() => {
+                    isLongPress = true;
+                    openActionSheet(id, isFolder);
+                }, 400); // 0.4s để kích hoạt menu
+            };
+            const cancel = () => clearTimeout(pressTimer);
+
+            el.addEventListener('touchstart', start);
+            el.addEventListener('touchend', cancel);
+            el.addEventListener('touchmove', () => { cancel(); });
+            
+            el.addEventListener('mousedown', start);
+            el.addEventListener('mouseup', cancel);
+            el.addEventListener('mouseleave', cancel);
+            
+            el.addEventListener('click', (e) => {
+                if(isLongPress) { e.preventDefault(); return; } // Nếu vừa nhấn giữ xong thì bỏ qua click
+                
+                if(isSelectionMode) { toggleSelect(e, id); return; }
+                
+                if(isFolder) {
+                    navigateToFolder(folderName);
+                } else {
+                    // Nếu bấm vào file bình thường mà ko ở chế độ gì thì hiện nhẹ toast hướng dẫn
+                    showToast("Nhấn giữ để Kích hoạt hoặc mở Tùy chọn!");
+                }
+            });
+        }
+
+        // ĐIỀU KHIỂN ACTION SHEET CHUNG CHO CẢ FOLDER VÀ FILE
+        const sheet = document.getElementById('action-sheet'); const sheetOverlay = document.getElementById('sheet-overlay');
+        function openActionSheet(id, isFolder) {
+            currentTargetId = id;
+            currentTargetIsFolder = isFolder;
+            
+            let item = isFolder ? zFolders.find(f => f.id === id) : myFiles.find(f => f.id === id);
+            if(!item) return;
+
+            document.getElementById('sheet-title').innerText = item.name;
+            
+            const btnXoa = document.getElementById('btn-xoa');
+            const btnKich = document.getElementById('btn-kich');
+            
+            // Xử lý nút Xóa (Ẩn nếu là VIP)
+            if(!isFolder && item.isVip) {
+                btnXoa.style.display = 'none';
+            } else {
+                btnXoa.style.display = 'flex';
+            }
+
+            // Xử lý nút Kích Hoạt (Chỉ áp dụng cho File)
+            if(isFolder) {
+                btnKich.style.opacity = '0.4';
+                btnKich.style.pointerEvents = 'none';
+                btnKich.innerHTML = `<i class="fa-solid fa-bolt" style="color: #666;"></i> Kích hoạt (Chỉ hỗ trợ File)`;
+            } else {
+                btnKich.style.opacity = '1';
+                btnKich.style.pointerEvents = 'auto';
+                btnKich.innerHTML = item.isActivated ? `<i class="fa-solid fa-ban" style="color:#ffcc00;"></i> Gỡ Kích Hoạt` : `<i class="fa-solid fa-bolt" style="color:var(--primary-red-glow);"></i> Kích hoạt (Inject)`;
+            }
+
+            sheetOverlay.classList.add('active'); sheet.classList.add('active');
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+        function closeActionSheet() { sheet.classList.remove('active'); sheetOverlay.classList.remove('active'); }
+        sheetOverlay.addEventListener('click', closeActionSheet);
+
+        document.getElementById('btn-xem').addEventListener('click', () => {
+            closeActionSheet(); 
+            let item = currentTargetIsFolder ? zFolders.find(f => f.id === currentTargetId) : myFiles.find(f => f.id === currentTargetId);
+            
+            document.getElementById('v-name').innerText = item.name; 
+            
+            if(currentTargetIsFolder) {
+                document.getElementById('v-type').innerText = "Thư mục hệ thống";
+                document.getElementById('v-status').innerText = "Không thể tiêm";
+                document.getElementById('v-status').style.color = "#888";
+            } else {
+                document.getElementById('v-type').innerText = item.isVip ? "Hệ thống VIP (Lõi)" : "Bản vá (Mod)";
+                const st = document.getElementById('v-status'); 
+                st.innerText = item.isActivated ? "Đã tiêm vào máy" : "Chưa kích hoạt"; 
+                st.style.color = item.isActivated ? "var(--success-green)" : "#888";
+            }
+
+            document.getElementById('v-size').innerText = item.size; 
+            document.getElementById('v-time').innerText = item.time;
+            
+            document.getElementById('view-modal').classList.add('active');
+        });
+
+        document.getElementById('btn-chon').addEventListener('click', () => { closeActionSheet(); isSelectionMode = true; document.getElementById('main-file-list').classList.add('selection-mode'); document.getElementById('selection-header').classList.add('active'); toggleSelect({stopPropagation:()=>{}}, currentTargetId); });
+        
+        document.getElementById('btn-chon-tat-ca').addEventListener('click', () => { 
+            closeActionSheet(); isSelectionMode = true; document.getElementById('main-file-list').classList.add('selection-mode'); document.getElementById('selection-header').classList.add('active'); 
+            
+            // Chọn tất cả file và folder trong mục hiện tại
+            myFiles.forEach(f => { if(!f.isVip && f.path === currentPath) selectedFiles.add(f.id); }); 
+            zFolders.forEach(f => { if(f.path === currentPath) selectedFiles.add(f.id); }); 
+            
+            updateSelectionCount(); renderFiles(); 
+        });
+
+        document.getElementById('btn-xoa').addEventListener('click', () => { 
+            closeActionSheet(); 
+            if(currentTargetIsFolder) {
+                zFolders = zFolders.filter(f => f.id !== currentTargetId);
+            } else {
+                myFiles = myFiles.filter(f => f.id !== currentTargetId); 
+            }
+            showToast("Đã xóa mục thành công."); renderFiles(); 
+        });
+
+        document.getElementById('btn-kich').addEventListener('click', () => {
+            if(currentTargetIsFolder) return;
+            closeActionSheet(); const fileIndex = myFiles.findIndex(f => f.id === currentTargetId);
+            if(myFiles[fileIndex].isActivated) { myFiles[fileIndex].isActivated = false; showToast("Đã gỡ file khỏi thiết bị!"); renderFiles(); return; }
+            
+            const modal = document.getElementById('inject-modal'); modal.classList.add('active');
+            document.getElementById('inject-file-name').innerText = myFiles[fileIndex].name; document.getElementById('inject-file-size').innerText = "Kích thước: " + myFiles[fileIndex].size;
+            const bar = document.getElementById('inject-bar'); const stText = document.getElementById('inject-status'); bar.style.width = '0%';
+            setTimeout(() => { bar.style.width = '30%'; stText.innerText = "Đang giải mã..."; }, 500); setTimeout(() => { bar.style.width = '70%'; stText.innerText = "Ghi đè bộ nhớ..."; }, 1500);
+            setTimeout(() => { bar.style.width = '100%'; stText.innerText = "Hoàn tất Inject!"; setTimeout(() => { modal.classList.remove('active'); myFiles[fileIndex].isActivated = true; showToast("Kích hoạt thành công! File đã vào Thiết bị."); renderFiles(); }, 800); }, 2500);
+        });
+
+        function toggleSelect(e, id) { 
+            e.stopPropagation(); if(!isSelectionMode) return; 
+            
+            // Chặn chọn file VIP
+            let isVip = myFiles.some(f => f.id === id && f.isVip);
+            if(isVip) return; 
+            
+            if(selectedFiles.has(id)) selectedFiles.delete(id); else selectedFiles.add(id); 
+            updateSelectionCount(); renderFiles(); 
+        }
+        function updateSelectionCount() { document.getElementById('select-count').innerText = `Đã chọn ${selectedFiles.size}`; }
+        function cancelSelection() { isSelectionMode = false; selectedFiles.clear(); document.getElementById('main-file-list').classList.remove('selection-mode'); document.getElementById('selection-header').classList.remove('active'); renderFiles(); }
+        function deleteSelected() { 
+            if(selectedFiles.size === 0) return; 
+            myFiles = myFiles.filter(f => !selectedFiles.has(f.id)); 
+            zFolders = zFolders.filter(f => !selectedFiles.has(f.id)); 
+            cancelSelection(); showToast("Đã xóa các mục được chọn!"); renderFiles(); 
+        }
+
+        // ĐỔI MỚI HÀM FORMAT SIZE ĐỂ THÊM FILE
+        function formatBytes(bytes) { if (bytes === 0) return '0 B'; const k = 1024; const sizes = ['B', 'KB', 'MB', 'GB']; const i = Math.floor(Math.log(bytes) / Math.log(k)); return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]; }
+        nativeFileInput.addEventListener('change', function(e) {
+            const files = e.target.files; if(files.length === 0) return;
+            for(let i = 0; i < files.length; i++) {
+                const now = new Date();
+                myFiles.push({ 
+                    id: 'file_' + now.getTime() + i, name: files[i].name, size: formatBytes(files[i].size), 
+                    time: now.toLocaleTimeString('vi-VN', { hour12: false }).slice(0,5) + ' ' + now.toLocaleDateString('vi-VN'), 
+                    isVip: false, isActivated: false, path: currentPath 
+                });
+            }
+            showToast(`Đã thêm ${files.length} file vào ${currentPath}.`); nativeFileInput.value = ''; renderFiles();
+        });
+
+        // ------------------ BẬT/TẮT NGUỒN CHÍNH (TRANG CHỦ) ------------------
+        const powerToggle = document.getElementById('power-toggle'); const switchWrapper = document.getElementById('switch-wrapper'); const statusText = document.getElementById('status-text'); const terminalLog = document.getElementById('terminal-log'); const timerBox = document.getElementById('uptime-timer'); const gameStatusText = document.getElementById('game-status-text'); const antibanCheck = document.getElementById('antiban-check'); const statFps = document.getElementById('stat-fps'); const statPing = document.getElementById('stat-ping'); const statDelay = document.getElementById('stat-delay'); const statBypass = document.getElementById('stat-bypass');
+        let logInterval, statsInterval, timerInterval; let secondsPassed = 0;
+        function formatTime(sec) { const h = String(Math.floor(sec / 3600)).padStart(2, '0'); const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0'); const s = String(sec % 60).padStart(2, '0'); return `${h}:${m}:${s}`; }
+        function startTimer() { secondsPassed = 0; timerBox.innerText = formatTime(secondsPassed); timerBox.classList.add('active'); timerInterval = setInterval(() => { secondsPassed++; timerBox.innerText = formatTime(secondsPassed); }, 1000); }
+        function stopTimer() { clearInterval(timerInterval); timerBox.classList.remove('active'); }
+
+        function getProLogs() { return [ { text: `Định tuyến qua ${currentServer}...`, type: "highlight" }, { text: "Cấp phép bảo mật thành công.", type: "success" }, { text: "Bypass Anti-Cheat: Khởi tạo...", type: "highlight" }, { text: "Kích hoạt Fast-mode (x1.2)", type: "success" }, { text: "Giảm trễ cảm ứng (-15ms)", type: "highlight" }, { text: "Lọc IP rác, tối ưu đường truyền...", type: "" }, { text: "Sẵn sàng hoạt động.", type: "success" } ]; }
+        function addMainLog(text, type = "") { const time = new Date().toLocaleTimeString('vi-VN', { hour12: false }); const logLine = document.createElement('div'); logLine.className = `log-line ${type}`; logLine.innerText = `[${time}] ${text}`; terminalLog.appendChild(logLine); terminalLog.scrollTop = terminalLog.scrollHeight; }
+        function updateStats() { statFps.innerText = Math.floor(Math.random() * (62 - 58) + 58); statPing.innerText = Math.floor(Math.random() * (25 - 12) + 12); statDelay.innerText = Math.floor(Math.random() * (8 - 4) + 4); }
+
+        powerToggle.addEventListener('change', function() {
+            if (this.checked) {
+                if (currentGame === "Chưa chọn") { this.checked = false; showToast("LỖI: Bạn chưa chọn Game!"); return; }
+                switchWrapper.classList.add('loading'); statusText.innerText = 'ĐANG KHỞI TẠO...';
+                addMainLog("Bắt đầu tiến trình...", "highlight");
+                setTimeout(() => {
+                    switchWrapper.classList.remove('loading'); statusText.innerText = 'ĐÃ KẾT NỐI'; statusText.classList.add('connected');
+                    gameStatusText.innerText = "Sẵn sàng"; gameStatusText.style.color = "var(--success-green)"; statBypass.innerText = "Active"; statBypass.style.color = "var(--success-green)";
+                    antibanCheck.classList.add('active'); startTimer(); updateStats(); statsInterval = setInterval(updateStats, 1000);
+                    let logIndex = 0; const dynamicLogs = getProLogs();
+                    logInterval = setInterval(() => { if (logIndex < dynamicLogs.length) { addMainLog(dynamicLogs[logIndex].text, dynamicLogs[logIndex].type); logIndex++; } else { addMainLog(`Duy trì kết nối... Ping: ${Math.floor(Math.random() * 20 + 10)}ms`); } }, 1500);
+                }, 3500);
+            } else {
+                switchWrapper.classList.add('loading'); statusText.innerText = 'ĐANG NGẮT...'; stopTimer(); clearInterval(logInterval); clearInterval(statsInterval); addMainLog("Đang đóng gói...", "highlight");
+                setTimeout(() => {
+                    switchWrapper.classList.remove('loading'); statusText.innerText = 'TẮT NGUỒN'; statusText.classList.remove('connected');
+                    gameStatusText.innerText = "Chờ cấu hình..."; gameStatusText.style.color = "var(--text-muted)"; statFps.innerText = "--"; statPing.innerText = "--"; statDelay.innerText = "--"; statBypass.innerText = "Chờ"; statBypass.style.color = "#888"; antibanCheck.classList.remove('active'); addMainLog("Đã thoát an toàn.", "success");
+                }, 2000);
+            }
+        });
+
+        // KÍCH HOẠT LẦN ĐẦU
+        renderFiles();
+    </script>
+</body>
+</html>
